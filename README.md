@@ -33,11 +33,13 @@ Pré-requisito: Docker com Compose.
 ./start.sh simulation        # tudo simulado: broker + servidor + simulador
 ./start.sh prod              # espera hardware real: broker + servidor, sem simulador; mostra o IP para as placas
 ./start.sh simulation --ia   # qualquer modo com --ia: sobe também a IA local do Assistente (Ollama)
+./start.sh simulation --sem-aas   # sem os servidores AAS (BaSyx e FA³ST)
 ./stop.sh                    # derruba e apaga os dados da linha (pede confirmação; --sim não pergunta)
 ./stop.sh --tudo             # apaga também os modelos do Ollama e a imagem construída
 ```
 
-Painel em http://localhost:8000. Para trocar de modo, rode `./stop.sh` antes: o `start.sh` se recusa a misturar dados
+Painel em http://localhost:8000 · catálogo de produtos (BaSyx) em http://localhost:3000 · estações por OPC UA em
+`opc.tcp://localhost:4840` (precisa do jar do FA³ST em `tools/`; ver [docs/AAS.md](docs/AAS.md)). Para trocar de modo, rode `./stop.sh` antes: o `start.sh` se recusa a misturar dados
 de simulação com os da linha real. O `stop.sh` sem `--tudo` mantém os modelos do Ollama (~11 GB), que não guardam
 estado da linha e demoram a baixar. Por baixo é `docker compose`, que continua funcionando direto.
 
@@ -73,6 +75,8 @@ Na aba **Linha conectada**:
 | Função | Como |
 |---|---|
 | Inspeção óptica por IA | Na AOI, um classificador de visão analisa a foto de cada placa (ponte de solda, solda ausente, excesso), aponta onde está o defeito e o resultado encerra o ciclo da estação |
+| Gêmeos digitais (AAS) | Produtos e unidades no BaSyx por HTTP, desde o planejamento, com a situação de fabricação; estações no FA³ST por OPC UA, com a máquina de estados ([docs/AAS.md](docs/AAS.md)) |
+| Pedidos | A unidade nasce planejada, com número de série, antes de ser fabricada |
 | Qualidade na fonte | A estação pede liberação ao ler a unidade. Reprovada antes, pulou etapa, já processada ou refugada: bloqueia (vermelho + buzina) |
 | Retrabalho e refugo | Reprovada volta à mesma estação; na 3ª reprovação (ou em estação `on_fail: scrap`) vira refugo |
 | Jidoka | Ponto do forno além de 3σ retém a estação até o processo voltar ao controle |
@@ -132,7 +136,7 @@ variação do operador, quebras) são hipóteses escritas em `config/line.yaml`,
 ## Desenvolvimento
 
 ```bash
-cd software && uv sync && uv run pytest            # servidor, indicadores, CEP, simulador (41 testes)
+cd software && uv sync && uv run pytest            # servidor, indicadores, CEP, simulador (48 testes)
 cd firmware && pio test -e native                  # núcleo do firmware no PC (13 testes)
 cd firmware && pio run -e esp32-asm                # compila para a placa
 uv run --project software python tools/golden.py   # traço de referência firmware × simulador
@@ -151,7 +155,7 @@ Sem Docker: um broker MQTT em `localhost:1883`, depois `uv run sfal server` e `u
 | `config/m1.yaml` | O diagnóstico do M1 e o que foi feito de cada causa-raiz |
 | `software/sfal` | Servidor (`engine`, `kpi`, `spc`, `assistant`, `api`), simulação do M2 (`m2`), síntese (`sintese`), painel (`web`) e simulador do M3 (`sim`) |
 | `models`, `tools/train_aoi.py` | Classificador da inspeção óptica (ONNX) e o script que o treina |
-| `docs` | [Arquitetura](docs/ARCHITECTURE.md), [protocolo MQTT](docs/PROTOCOL.md), [hardware](docs/HARDWARE.md), [decisões](docs/adr/README.md) |
+| `docs` | [Arquitetura](docs/ARCHITECTURE.md), [protocolo MQTT](docs/PROTOCOL.md), [hardware](docs/HARDWARE.md), [AAS](docs/AAS.md), [decisões](docs/adr/README.md) |
 
 ## Limitações conhecidas
 

@@ -78,6 +78,7 @@ class Engine:
         self.charts = {
             s.id: Chart(target=float(s.spc["target"]), sigma=float(s.spc["sigma"])) for s in cfg.stations if s.spc
         }
+        self.dirty_units: set[str] = set()   # unidades alteradas desde a última sincronização com o AAS
         self.sim_status: dict[str, Any] | None = None
         self.rejected = 0
         row = db.execute("SELECT value FROM meta WHERE key='window_start'").fetchone()
@@ -96,6 +97,7 @@ class Engine:
             if self.window_start is None:
                 self._set_window(now)
             self.db.execute("UPDATE downtime SET end_ts=? WHERE end_ts IS NULL", (now,))
+            self._auto_order(now)
             self.db.execute("UPDATE alerts SET closed_ts=? WHERE closed_ts IS NULL", (now,))
             r = self.cfg.rules
             for s in self.cfg.stations:
@@ -112,6 +114,49 @@ class Engine:
     def _set_window(self, now: float) -> None:
         self.window_start = now
         self.db.execute("INSERT OR REPLACE INTO meta VALUES ('window_start', ?)", (str(now),))
+
+    # ------------------------------------------------------------------ pedidos e unidades planejadas
+
+    def plan_order(self, quantity: int, now: float) -> dict[str, Any]:
+        """Planeja um lote: as unidades passam a existir (com número de série) antes de serem fabricadas."""
+        with self.lock:
+            product = str(self.cfg.product["id"])
+            cur = self.db.execute("INSERT INTO orders (ts, product, quantity) VALUES (?,?,?)", (now, product, quantity))
+            first = self.cfg.stations[0].id
+            units = []
+            for _ in range(quantity):
+                uid = self._new_unit_id()
+                self.db.execute(
+                    "INSERT INTO units (id, created_ts, planned_ts, status, next_station, ready_ts, order_id) "
+                    "VALUES (?,?,?,?,?,?,?)", (uid, now, now, "planned", first, now, cur.lastrowid))
+                units.append(uid)
+            self.dirty_units.update(units)
+            self._log(now, "info", None, None, "order", f"Pedido {cur.lastrowid}: {quantity} unidade(s) de {product} planejada(s) ({units[0]} a {units[-1]})")
+            return {"id": cur.lastrowid, "product": product, "quantity": quantity, "units": units}
+
+    def planned(self) -> int:
+        return self.db.execute("SELECT COUNT(*) FROM units WHERE status='planned'").fetchone()[0]
+
+    def _auto_order(self, now: float) -> None:
+        o = self.cfg.orders
+        if o.get("auto") and self.planned() <= max(1, int(o["lot_size"]) // 4):
+            self.plan_order(int(o["lot_size"]), now)
+
+    def _start_planned(self, st: Station, ts: float) -> str | None:
+        """Primeira estação sem leitor: inicia a unidade planejada mais antiga."""
+        row = self.db.execute("SELECT id FROM units WHERE status='planned' ORDER BY rowid LIMIT 1").fetchone()
+        if not row:
+            return None
+        self.db.execute("UPDATE units SET status='wip', created_ts=?, ready_ts=?, next_station=? WHERE id=?",
+                        (ts, ts, st.id, row["id"]))
+        return row["id"]
+
+    def orders(self) -> list[dict[str, Any]]:
+        with self.lock:
+            return [dict(r) for r in self.db.execute(
+                "SELECT o.*, COALESCE(SUM(u.status='planned'),0) planned, COALESCE(SUM(u.status IN ('wip','rework')),0) wip, "
+                "COALESCE(SUM(u.status='done'),0) done, COALESCE(SUM(u.status='scrap'),0) scrap "
+                "FROM orders o LEFT JOIN units u ON u.order_id=o.id GROUP BY o.id ORDER BY o.id DESC LIMIT 20")]
 
     def new_shift(self, now: float) -> None:
         with self.lock:
@@ -164,6 +209,7 @@ class Engine:
                 if lv.online and now - lv.last_seen > limit:
                     self._set_online(s, False, now, "sem telemetria")
                 self._update_light(s, now)
+            self._auto_order(now)
 
     def _sim_session(self, session: str, now: float) -> None:
         """Simulador reiniciado: as unidades que ele tinha na linha deixaram de existir."""
@@ -171,6 +217,7 @@ class Engine:
         if not session or (row and row["value"] == session):
             return
         self.db.execute("INSERT OR REPLACE INTO meta VALUES ('sim_session', ?)", (session,))
+        self.dirty_units.update(r["id"] for r in self.db.execute("SELECT id FROM units WHERE status IN ('wip','rework')"))
         n = self.db.execute(
             "UPDATE units SET status='removed', busy=0, next_station=NULL, finished_ts=? WHERE status IN ('wip','rework')",
             (now,),
@@ -308,8 +355,10 @@ class Engine:
             return False, uid, "hold"
         if not uid:  # estação sem leitor: o servidor escolhe
             if st.index == 0:
-                uid = self._new_unit_id()
-                self._create_unit(uid, st, ts)
+                uid = self._start_planned(st, ts)
+                if uid is None:                       # sem pedido planejado: a unidade nasce aqui, como antes
+                    uid = self._new_unit_id()
+                    self._create_unit(uid, st, ts)
                 return True, uid, ""
             uid = self._fifo(st) or ""
             if uid:
@@ -325,6 +374,12 @@ class Engine:
                 self._create_unit(uid, st, ts)
                 return True, uid, ""
             return False, uid, "unknown_unit"
+        if u["status"] == "planned":                  # etiqueta de uma unidade planejada lida na primeira estação
+            if st.index == 0 or not strict:
+                self.db.execute("UPDATE units SET status='wip', created_ts=?, ready_ts=?, next_station=? WHERE id=?",
+                                (ts, ts, st.id, uid))
+                return True, uid, ""
+            return False, uid, "skipped_step"
         if not strict:
             return True, uid, ""
         if u["status"] == "scrap":
@@ -358,6 +413,7 @@ class Engine:
             "INSERT INTO steps (unit, station, attempt, start_ts) VALUES (?,?,?,?)", (uid, st.id, attempt + 1, start_ts)
         )
         self.db.execute("UPDATE units SET busy=1 WHERE id=?", (uid,))
+        self.dirty_units.add(uid)
         return cur.lastrowid
 
     def _on_scan(self, st: Station, d: dict, ts: float, now: float) -> None:
@@ -415,6 +471,7 @@ class Engine:
         self._advance_unit(st, uid, ok, ts)
 
     def _advance_unit(self, st: Station, uid: str, ok: bool, ts: float) -> None:
+        self.dirty_units.add(uid)
         if ok:
             if st.index == len(self.cfg.stations) - 1:
                 self.db.execute(
@@ -462,6 +519,7 @@ class Engine:
                  verdict.get("model"), verdict.get("latency_ms"), verdict.get("error") or None,
                  None if "defect" not in t else int(bool(t["defect"])), t.get("kind"), image),
             )
+            self.dirty_units.add(unit)
             if ok is None:
                 self._log(now, "warn", station, unit, "vision", f"Inspeção óptica sem veredito para {unit}: {verdict.get('error', '')}")
             else:
@@ -554,6 +612,8 @@ class Engine:
             if status:
                 q += " WHERE status=?"
                 args.append(status)
+            else:
+                q += " WHERE status!='planned'"      # planejadas só aparecem quando pedidas
             q += " ORDER BY created_ts DESC LIMIT ?"
             args.append(limit)
             return [dict(r) for r in self.db.execute(q, args)]

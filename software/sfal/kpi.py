@@ -117,7 +117,10 @@ def compute(engine, now: float) -> dict[str, Any]:
             (t0, now),
         )
     ]
-    started = db.execute("SELECT COUNT(*) c FROM units WHERE created_ts>=? AND created_ts<=?", (t0, now)).fetchone()["c"]
+    started = db.execute(
+        "SELECT COUNT(*) c FROM units WHERE status!='planned' AND created_ts>=? AND created_ts<=?", (t0, now)
+    ).fetchone()["c"]
+    planned = db.execute("SELECT COUNT(*) c FROM units WHERE status='planned'").fetchone()["c"]
     wip = db.execute("SELECT COUNT(*) c FROM units WHERE status IN ('wip','rework')").fetchone()["c"]
     rework_now = db.execute("SELECT COUNT(*) c FROM units WHERE status='rework'").fetchone()["c"]
     reworked = db.execute(
@@ -132,6 +135,7 @@ def compute(engine, now: float) -> dict[str, Any]:
     line = {
         "window_start": t0,
         "planned_s": planned,
+        "planned": planned,
         "started": started,
         "done": done,
         "scrap": scrap,

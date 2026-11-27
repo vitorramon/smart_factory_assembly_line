@@ -10,6 +10,7 @@ mudar.
 1. [README.md](README.md): o que é, como rodar, limitações
 2. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): desenho e a tabela "Onde mexer"
 3. [docs/PROTOCOL.md](docs/PROTOCOL.md): contrato MQTT `sfal/v1`
+   · [docs/AAS.md](docs/AAS.md): BaSyx (produtos, HTTP) e FA³ST (estações, OPC UA)
 4. [docs/adr/](docs/adr/README.md): por quê
 
 ## Regras do projeto
@@ -33,6 +34,10 @@ mudar.
   reprova na AOI. O assistente do Ollama só escreve texto. Modelo novo de visão só entra com medição contra gabarito
   (`sfal/vision/evaluate.py` ou a ficha de `tools/train_aoi.py`); modelos genéricos do Ollama foram medidos e reprovados.
 - **Fotos sintéticas são ditas como sintéticas.** Desempenho do classificador é "em fotos sintéticas", nunca "na linha".
+- **AAS é adaptador, só de leitura** (ADR-0004): `software/sfal/aas` lê o motor e publica; o motor não importa nada
+  de lá, e a linha tem de funcionar com BaSyx e FA³ST desligados. Campo novo no OPC UA entra na tabela de
+  `aas/twin.py`. As três armadilhas do FA³ST em docs/AAS.md (nome `localhost`, retenção, ritmo) são medidas: não
+  desfaça sem medir de novo.
 - **Mudou o comportamento do núcleo?** Testes nativos + `tools/golden.py --update` + `docs/PROTOCOL.md`.
 
 ## Honestidade técnica
@@ -45,12 +50,12 @@ mudar.
 ## Comandos
 
 ```bash
-./start.sh simulation [--ia]                       # tudo simulado; painel em http://localhost:8000 (--ia: Ollama)
+./start.sh simulation [--ia] [--sem-aas]           # tudo simulado; painel :8000, BaSyx :3000/:8081, OPC UA :4840
 ./start.sh prod [--ia]                             # só broker + servidor, esperando placas reais
 ./stop.sh                                          # derruba e APAGA os dados da linha: só com pedido do usuário
 docker compose up -d --build                       # reconstruir depois de mudar código, sem apagar dados
 docker compose logs -f backend simulator
-(cd software && uv run pytest)                     # 41 testes
+(cd software && uv run pytest)                     # 48 testes
 (cd software && uv run sfal whatif --hours 8)      # cenários em tempo acelerado
 (cd firmware && pio test -e native)                # 13 testes do núcleo
 (cd firmware && pio run -e esp32-asm)              # compila para a placa
@@ -62,7 +67,7 @@ uv run --project software python tools/golden.py   # paridade firmware × simula
 
 - Linux em WSL2 com Docker Desktop (runtime `nvidia` disponível). `uv`, Python 3.12 (via uv; o do sistema é 3.14) e
   PlatformIO em `~/.local/bin`. Ollama só em contêiner, por decisão do usuário (2026-11-26).
-- Repositório Git local, sem remoto. Branches `main` (estável, com tag) e `dev` (trabalho). Commit, push e tag só a pedido, sem linha de coautoria.
+- Repositório Git com remoto `origin` (github.com/vitorramon/smart_factory_assembly_line). Branches `main` (estável, com tag) e `dev` (trabalho). Commit, push e tag só a pedido, sem linha de coautoria.
 - Projeto anterior, só para consulta: `../Documentation/Atividade/MOD 3` (repositório próprio; não editar). Os
   arquivos do Claude daquele projeto estão guardados em `../claude-mod3-original.tar.gz`.
 - Contêineres de outros projetos na máquina (por exemplo `rebac-*`): não mexa.

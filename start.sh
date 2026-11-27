@@ -4,18 +4,21 @@
 #   ./start.sh simulation        tudo simulado: broker + servidor + simulador (firmware real, mundo simulado)
 #   ./start.sh prod              espera hardware real: broker + servidor, sem simulador
 #   ./start.sh <modo> --ia       também sobe a IA local do Assistente (Ollama; baixa o modelo na primeira vez)
+#   ./start.sh <modo> --sem-aas  não sobe os servidores AAS (BaSyx para os produtos, FA³ST/OPC UA para as estações)
 #
 # Para trocar de modo, rode ./stop.sh antes: os dados de uma simulação não devem se misturar com os da linha real.
 set -euo pipefail
 cd "$(dirname "$0")"
 
-usage() { sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-1}"; }
+usage() { sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-1}"; }
 
 MODE="${1:-}"; shift || true
 IA=0
+AAS=1
 for arg in "$@"; do
   case "$arg" in
     --ia) IA=1 ;;
+    --sem-aas) AAS=0 ;;
     *) echo "Opção desconhecida: $arg" >&2; usage ;;
   esac
 done
@@ -47,6 +50,16 @@ PROFILE=()
 SERVICES=(broker backend)
 [[ $MODE == simulation ]] && SERVICES+=(simulator)
 if [[ $IA == 1 ]]; then PROFILE=(--profile ia); SERVICES+=(ollama); fi
+FAAAST_JAR=tools/starter-1.3.0.jar
+OPCUA=0
+if [[ $AAS == 1 ]]; then
+  PROFILE+=(--profile aas); SERVICES+=(basyx basyx-gui)
+  if [[ -f $FAAAST_JAR ]]; then
+    SERVICES+=(aas-config faaast); OPCUA=1
+  else
+    echo "Aviso: $FAAAST_JAR não encontrado; subindo sem o FA³ST (sem OPC UA). Veja docs/AAS.md." >&2
+  fi
+fi
 
 echo "==> Subindo em modo $MODE: ${SERVICES[*]}"
 echo "$MODE" > $MARK
@@ -94,6 +107,13 @@ else
   echo "Detalhes, ligações e teste de bancada: docs/HARDWARE.md"
   echo "A inspeção óptica da AOI espera a foto de uma câmera (docs/HARDWARE.md, 'Câmera na inspeção óptica');"
   echo "sem câmera, o ciclo da AOI é encerrado pelos botões da estação."
+fi
+if [[ $AAS == 1 ]]; then
+  echo
+  echo "Produtos (BaSyx, HTTP): catálogo http://localhost:${SFAL_BASYX_GUI_PORT:-3000} · API http://localhost:${SFAL_BASYX_PORT:-8081}/shells"
+  if [[ $OPCUA == 1 ]]; then
+    echo "Estações (FA³ST, OPC UA): opc.tcp://localhost:${SFAL_OPCUA_PORT:-4840}   (leva ~20 s para abrir; sem segurança, só em rede isolada)"
+  fi
 fi
 [[ $IA == 0 ]] && echo "Assistente de IA desligado (use --ia para ligar). A inspeção óptica não depende dele."
 echo "Parar e apagar os dados: ./stop.sh"

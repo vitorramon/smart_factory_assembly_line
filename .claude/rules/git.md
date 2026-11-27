@@ -1,6 +1,6 @@
 # Git
 
-- `smart_factory_assembly_line/` é o repositório do projeto (local, sem remoto até o usuário configurar um). Branches: `main` (versões estáveis, com tag) e `dev` (trabalho do dia a dia). Trabalhe em `dev`; `main` só recebe o que foi verificado. Versões por tag semântica sem prefixo (`1.0.0`).
+- `smart_factory_assembly_line/` é o repositório do projeto, com remoto `origin` em `git@github.com:vitorramon/smart_factory_assembly_line.git`. Branches: `main` (versões estáveis, com tag) e `dev` (trabalho do dia a dia). Trabalhe em `dev`; `main` só recebe o que foi verificado. Versões por tag semântica sem prefixo (`1.0.0`).
 - A pasta-mãe `lean-manufacture/` não é repositório. `../Documentation/Atividade/MOD 3`,
   `../Documentation/Atividade/MOD 2/GemeoDigitalCelulares` e `../Base/Virtual-Factory` são repositórios de outros
   trabalhos: não edite nem faça commit neles.

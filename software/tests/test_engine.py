@@ -99,7 +99,7 @@ def test_mensagem_invalida_e_rejeitada_sem_derrubar(bench):
     bench.engine.handle("sfal/v1/smt/evt/cycle", '{"seq": 1, "boot": 1}', T0)        # falta dur_ms/ok
     bench.engine.handle("sfal/v1/naoexiste/tel", "{}", T0)
     assert bench.engine.rejected == 3
-    assert bench.engine.units() == []
+    assert bench.engine.units() == []                     # nenhuma unidade saiu de "planejada"
 
 
 def test_oee_e_fpy_com_resultado_conhecido(bench):

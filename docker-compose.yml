@@ -2,6 +2,7 @@
 #
 #   docker compose up -d --build                 broker + backend + simulador (painel em http://localhost:8000)
 #   docker compose --profile ia up -d            acrescenta a IA local (Ollama, usa a GPU se houver)
+#   docker compose --profile aas up -d           acrescenta o AAS: BaSyx (produtos, HTTP) e FA³ST (estações, OPC UA)
 #   docker compose up -d broker backend          sem simulador: para ligar placas ESP32 reais
 #   docker compose down                          derruba (os volumes ficam)
 name: sfal
@@ -30,6 +31,7 @@ services:
       SFAL_MQTT_HOST: broker
       SFAL_OLLAMA_URL: http://ollama:11434
       SFAL_OLLAMA_MODEL: ${SFAL_OLLAMA_MODEL:-qwen2.5:7b}
+      SFAL_BASYX_URL: ${SFAL_BASYX_URL:-http://basyx:8081}
     ports:
       - "${SFAL_HTTP_PORT:-8000}:8000"
     volumes:
@@ -53,6 +55,60 @@ services:
       SFAL_REAL: ${SFAL_REAL:-}
     volumes:
       - ./config:/app/config:ro
+
+  # ---- AAS (perfil "aas"): produtos no BaSyx por HTTP, estações no FA³ST por OPC UA. Ver docs/AAS.md.
+  basyx:
+    image: eclipsebasyx/aas-environment:2.0.0-milestone-06
+    profiles: ["aas"]
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: "8081"
+      BASYX_BACKEND: InMemory          # o servidor reenvia tudo quando o BaSyx reinicia
+      BASYX_CORS_ALLOWED_ORIGINS: "*"
+      BASYX_CORS_ALLOWED_METHODS: GET,POST,PATCH,DELETE,PUT,OPTIONS,HEAD
+    ports:
+      - "${SFAL_BASYX_PORT:-8081}:8081"
+
+  basyx-gui:
+    # a imagem aas-gui não publica tags de versão: fixada pelo resumo
+    image: eclipsebasyx/aas-gui@sha256:5e9ad866865267a0cf13f99d309a823e979c5bf945e63138b9a1268c9a884298
+    profiles: ["aas"]
+    restart: unless-stopped
+    ports:
+      - "${SFAL_BASYX_GUI_PORT:-3000}:3000"
+    volumes:
+      - ./infra/basyx/basyx-infra.yml:/basyx-infra.yml:ro
+    environment:
+      ENDPOINT_CONFIG_AVAILABLE: "false"
+
+  aas-config:
+    # roda uma vez: gera o modelo AAS das estações e a configuração do FA³ST a partir de config/line.yaml
+    build: .
+    profiles: ["aas"]
+    command: ["sfal", "aas-config", "--out", "/faaast"]
+    environment:
+      SFAL_MQTT_HOST: broker
+    volumes:
+      - faaast:/faaast
+      - ./config:/app/config:ro
+
+  faaast:
+    # FA³ST Service: o jar fica em tools/ (não versionado; ver docs/AAS.md)
+    image: eclipse-temurin:17-jre
+    profiles: ["aas"]
+    restart: unless-stopped
+    hostname: ${SFAL_OPCUA_HOST:-sfal-opcua}   # nome que o servidor OPC UA anuncia; "localhost" impede o FA³ST de subir
+    working_dir: /faaast
+    command: ["java", "-jar", "/opt/faaast/starter.jar", "-c", "/faaast/config.json", "--loglevel-faaast", "INFO"]
+    depends_on:
+      aas-config: {condition: service_completed_successfully}
+      broker: {condition: service_healthy}
+    volumes:
+      - ./tools/starter-1.3.0.jar:/opt/faaast/starter.jar:ro
+      - faaast:/faaast
+    ports:
+      - "${SFAL_OPCUA_PORT:-4840}:4840"
+      - "${SFAL_FAAAST_HTTP_PORT:-8443}:8443"
 
   ollama:
     image: ollama/ollama:latest
@@ -79,3 +135,4 @@ services:
 volumes:
   ollama:
   dados:
+  faaast:

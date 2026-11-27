@@ -20,6 +20,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import mqtt as bus
+from .aas import twin
+from .aas.sync import BasyxSync
 from . import sintese
 from .assistant import REPORT, Assistant
 from .config import load
@@ -51,6 +53,10 @@ class Photo(BaseModel):
     truth: dict | None = None      # gabarito opcional: {"defect": bool, "kind": "ponte"}
 
 
+class Order(BaseModel):
+    quantity: int = Field(ge=1, le=500)
+
+
 class WhatIf(BaseModel):
     scenarios: list[str] = Field(min_length=1, max_length=6)
     hours: float = Field(default=2, gt=0, le=12)
@@ -70,6 +76,38 @@ def create_app() -> FastAPI:
     vision = VisionService(cfg.vision, cfg.assistant["url"])
     photos = Path(os.environ.get("SFAL_DATA_DIR", DATA_DIR)) / "inspections"
     photos.mkdir(parents=True, exist_ok=True)
+    # AAS: gêmeo das estações em MQTT (o FA³ST espelha em OPC UA) e produtos no BaSyx (HTTP). Ver docs/AAS.md.
+    public = os.environ.get("SFAL_PUBLIC_URL", "http://localhost:8000").rstrip("/")
+    basyx_url = os.environ.get("SFAL_BASYX_URL", "")
+    basyx = BasyxSync(engine, basyx_url, public) if basyx_url else None
+    aas_links = {
+        "opcua": os.environ.get("SFAL_OPCUA_PUBLIC", "opc.tcp://localhost:4840"),
+        "faaast_http": os.environ.get("SFAL_FAAAST_PUBLIC", "http://localhost:8443/api/v3.0"),
+        "basyx": os.environ.get("SFAL_BASYX_PUBLIC", "http://localhost:8081"),
+        "gui": os.environ.get("SFAL_BASYX_GUI_PUBLIC", "http://localhost:3000"),
+    }
+    twins: dict[str, tuple[str, float]] = {}      # tópico -> (último payload, quando foi publicado)
+
+    def publish_twins(snap: dict) -> None:
+        """Publica o gêmeo das estações e da linha, por grupo, no ritmo de cada grupo (ver aas/twin.py).
+        Mensagem igual à anterior é repetida a cada 15 s, para quem conectou depois."""
+        out: dict[str, tuple[str, dict]] = {}
+        for st in snap["stations"]:
+            for group, data in twin.payloads_station(st).items():
+                out[twin.TOPIC_STATION.format(id=st["id"], group=group)] = (group, data)
+        for group, data in twin.payloads_line(snap).items():
+            out[twin.TOPIC_LINE.format(group=group)] = (group, data)
+        now = time.monotonic()
+        for topic, (group, data) in out.items():
+            text = json.dumps(data, ensure_ascii=False)
+            last = twins.get(topic)
+            changed = last is None or last[0] != text
+            due = last is None or now - last[1] >= twin.MIN_INTERVAL_S[group]
+            # Sem retenção: mensagens retidas chegando todas juntas na hora da assinatura derrubavam a conexão
+            # MQTT do FA³ST. Em troca, o que não mudou é repetido a cada 15 s.
+            if ((changed and due) or (last and now - last[1] > 15)) and publish(topic, text, 0, False):
+                twins[topic] = (text, now)
+
     stop = threading.Event()
     sockets: set[WebSocket] = set()
 
@@ -91,6 +129,9 @@ def create_app() -> FastAPI:
             snap["broker"] = bool(state["client"] and state["client"].is_connected())
             snap["assistant"] = {"available": await assistant.available(), "model": assistant.model}
             snap["vision"] = {**vision.info(), **snap["vision"]}
+            snap["aas"] = {"links": aas_links, "basyx": basyx.info() if basyx else {"enabled": False}}
+            snap["orders"] = await asyncio.to_thread(engine.orders)
+            publish_twins(snap)
             snap["scenarios"] = {k: v.get("label", k) for k, v in cfg.scenarios.items()}
             state["snapshot"] = snap
             text = json.dumps(snap, ensure_ascii=False)
@@ -106,12 +147,16 @@ def create_app() -> FastAPI:
         client = bus.make_client("sfal-server", on_connect, lambda t, p: engine.handle(t, p, time.time()))
         state["client"] = client
         threading.Thread(target=ticker, daemon=True, name="tick").start()
+        if basyx:
+            basyx.start()
         task = asyncio.create_task(broadcaster())
         warm = asyncio.create_task(assistant.warmup())
         yield
         task.cancel()
         warm.cancel()
         stop.set()
+        if basyx:
+            basyx.stop()
         client.loop_stop()
         client.disconnect()
 
@@ -163,6 +208,14 @@ def create_app() -> FastAPI:
     @app.get("/api/sintese")
     async def get_sintese():
         return await asyncio.to_thread(sintese.build, engine, time.time())
+
+    @app.get("/api/orders")
+    def get_orders():
+        return engine.orders()
+
+    @app.post("/api/orders")
+    def post_order(order: Order):
+        return engine.plan_order(order.quantity, time.time())
 
     @app.post("/api/shift")
     def new_shift():

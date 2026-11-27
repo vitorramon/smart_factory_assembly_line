@@ -43,6 +43,13 @@ em `POST /api/vision/inspect`, classifica, guarda foto e veredito (`inspections`
 
 O "E se?" não chama o modelo (rodaria milhares de inferências por cenário): usa `detect_p` e `false_fail_p`.
 
+## AAS (adaptadores)
+
+`software/sfal/aas`: `twin.py` define os campos do gêmeo de cada estação e os publica em MQTT (`sfal/twin/v1/...`);
+`faaast.py` gera, dos mesmos campos, o modelo AAS e as conexões MQTT do FA³ST, que expõe as estações por OPC UA;
+`product.py` monta os shells do produto e das unidades e `sync.py` os grava no BaSyx. O motor só mantém
+`dirty_units` (unidades alteradas) e os pedidos; não conhece AAS. Detalhes em [AAS.md](AAS.md) e no ADR-0004.
+
 ## As quatro abas do painel
 
 O painel (`software/sfal/web`) é HTML e módulos JavaScript sem etapa de build. `js/main.js` troca de aba pelo
@@ -70,6 +77,8 @@ outra coisa: roda o recorte de 5 estações do M3 com o firmware real em tempo a
 | `backend` | 8000 | `sfal server`: motor + API + painel; único escritor do banco (`/data/sfal.db`) |
 | `simulator` | — | `sfal sim`: uma conexão MQTT por estação simulada |
 | `ollama` (perfil `ia`) | 11434 (só localhost) | IA local |
+| `basyx`, `basyx-gui` (perfil `aas`) | 8081, 3000 | AAS dos produtos e das unidades (HTTP) e o catálogo web |
+| `faaast` (perfil `aas`) | 4840 (OPC UA), 8443 (HTTP) | AAS das estações; `aas-config` gera modelo e configuração a cada subida |
 
 ## Dados
 
@@ -90,5 +99,7 @@ refeito pelas mensagens retidas e pela telemetria quando o servidor reinicia.
 | mudar o texto do diagnóstico ou a situação de uma causa-raiz | `config/m1.yaml` |
 | mudar o modelo ou um cenário do M2 | `software/sfal/m2/model.py` (o teste `test_m2.py` trava os números publicados) |
 | retreinar a inspeção óptica (outro defeito, fotos reais) | `tools/train_aoi.py` e `software/sfal/vision/board.py`; a ficha do modelo fica em `models/aoi.json` |
+| acrescentar uma propriedade ao OPC UA das estações | `software/sfal/aas/twin.py` (a tabela de campos gera MQTT, modelo e conexões) |
+| mudar o que o BaSyx mostra de um produto ou unidade | `software/sfal/aas/product.py` |
 | acrescentar um gráfico | `software/sfal/web/js/charts.js` |
 | acrescentar um tipo de falha simulada | `software/sfal/sim/plant.py` (`inject`) e `live.py` (`FAULTS`) |

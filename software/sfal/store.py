@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
 CREATE TABLE IF NOT EXISTS units (
     id TEXT PRIMARY KEY,
     created_ts REAL NOT NULL,
-    status TEXT NOT NULL,            -- wip | rework | done | scrap | removed
+    status TEXT NOT NULL,            -- planned | wip | rework | done | scrap | removed
     next_station TEXT,               -- estação em que a unidade é esperada
     busy INTEGER NOT NULL DEFAULT 0, -- 1 = em processo numa estação
     ready_ts REAL NOT NULL,          -- desde quando espera pela próxima estação
@@ -18,6 +18,12 @@ CREATE TABLE IF NOT EXISTS units (
     fails INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS units_next ON units(next_station, busy, status);
+CREATE TABLE IF NOT EXISTS orders (
+    id INTEGER PRIMARY KEY,
+    ts REAL NOT NULL,
+    product TEXT NOT NULL,
+    quantity INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS steps (
     id INTEGER PRIMARY KEY,
     unit TEXT NOT NULL,
@@ -87,4 +93,10 @@ def open_db(path: str | Path = ":memory:") -> sqlite3.Connection:
         db.execute("PRAGMA journal_mode=WAL")
         db.execute("PRAGMA synchronous=NORMAL")
     db.executescript(SCHEMA)
+    # Migração de bancos criados antes dos pedidos: colunas novas em `units`.
+    cols = {r["name"] for r in db.execute("PRAGMA table_info(units)")}
+    if "order_id" not in cols:
+        db.execute("ALTER TABLE units ADD COLUMN order_id INTEGER")     # pedido que planejou a unidade
+    if "planned_ts" not in cols:
+        db.execute("ALTER TABLE units ADD COLUMN planned_ts REAL")      # quando foi planejada (created_ts = início da produção)
     return db

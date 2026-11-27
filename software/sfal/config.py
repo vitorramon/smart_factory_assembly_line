@@ -21,6 +21,7 @@ class Station:
     ideal_cycle_s: float
     reader: bool = True
     kind: str = "auto"  # auto | manual (só para o desenho do chão de fábrica)
+    skill: str = ""     # capacidade que a estação oferece (o que o produto pede em cada etapa)
     on_fail: str = "rework"  # rework | scrap
     spc: dict[str, Any] | None = None
     sim: dict[str, Any] = field(default_factory=dict)
@@ -40,6 +41,8 @@ class Config:
     scenarios: dict[str, dict[str, Any]]
     costs: dict[str, Any] = field(default_factory=dict)
     vision: dict[str, Any] = field(default_factory=dict)
+    product: dict[str, Any] = field(default_factory=dict)
+    orders: dict[str, Any] = field(default_factory=dict)
 
     def station(self, station_id: str) -> Station | None:
         return self._by_id.get(station_id)
@@ -89,6 +92,7 @@ def from_dict(raw: dict[str, Any]) -> Config:
                 ideal_cycle_s=float(s["ideal_cycle_s"]),
                 reader=bool(s.get("reader", True)),
                 kind=str(s.get("kind", "auto")),
+                skill=str(s.get("skill", s.get("name", sid))),
                 on_fail=on_fail,
                 spc=s.get("spc"),
                 sim=s.get("sim") or {},
@@ -109,6 +113,8 @@ def from_dict(raw: dict[str, Any]) -> Config:
         simulation={"seed": 42, "arrival_s": 20, "transfer_s": 2, **(raw.get("simulation") or {})},
         scenarios=raw.get("scenarios") or {"padrao": {"label": "Configuração atual", "patch": {}}},
         vision=raw.get("vision") or {},
+        product={"id": "PRODUTO", "name": "Produto", **(raw.get("product") or {})},
+        orders={"auto": False, "lot_size": 20, **(raw.get("orders") or {})},
         costs={"unit": 240, "scrap": 240, "nok_default": 60, "nok": {}, **(raw.get("costs") or {})},
     )
 

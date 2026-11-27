@@ -60,6 +60,18 @@ def cmd_whatif(args) -> None:
         print(f"\n{r['scenario']}: {r['label']}")
 
 
+def cmd_aas_config(args) -> None:
+    from pathlib import Path
+
+    from .aas import faaast
+    from .config import load
+    from .mqtt import broker_address
+
+    host, port = broker_address()
+    faaast.write(load(), Path(args.out), f"tcp://{host}:{port}", args.model_dir)
+    print(f"FA³ST: {args.out}/model.json e {args.out}/config.json (broker tcp://{host}:{port})")
+
+
 def main() -> None:
     logging.basicConfig(level=os.environ.get("SFAL_LOG", "INFO"), format="%(asctime)s %(name)s %(levelname)s %(message)s")
     logging.getLogger("httpx").setLevel(logging.WARNING)   # uma linha por foto enviada é ruído
@@ -81,6 +93,11 @@ def main() -> None:
     s.add_argument("--seed", type=int)
     s.add_argument("--json", action="store_true")
     s.set_defaults(fn=cmd_whatif)
+
+    s = sub.add_parser("aas-config", help="gera o modelo AAS e a configuração do FA³ST (estações via OPC UA)")
+    s.add_argument("--out", default="infra/faaast")
+    s.add_argument("--model-dir", help="pasta do model.json como o FA³ST a enxerga (se diferente de --out)")
+    s.set_defaults(fn=cmd_aas_config)
 
     args = p.parse_args()
     args.fn(args)

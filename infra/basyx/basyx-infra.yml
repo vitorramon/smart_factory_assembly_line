@@ -1,0 +1,15 @@
+# Interface web do BaSyx (catálogo de produtos): aponta para o ambiente AAS deste projeto.
+infrastructures:
+  default: sfal
+
+  sfal:
+    name: Smart Factory Assembly Line (BaSyx)
+    components:
+      aasRepository:
+        baseUrl: "http://localhost:8081/shells"
+      submodelRepository:
+        baseUrl: "http://localhost:8081/submodels"
+      conceptDescriptionRepository:
+        baseUrl: "http://localhost:8081/concept-descriptions"
+    security:
+      type: none

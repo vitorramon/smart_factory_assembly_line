@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Derruba a linha e apaga os dados, para a próxima subida começar do zero.
 #
-#   ./stop.sh           para e remove os contêineres e apaga os dados da linha (banco, fotos da inspeção)
+#   ./stop.sh           para e remove os contêineres e apaga os dados da linha (banco, fotos da inspeção, shells no BaSyx)
 #   ./stop.sh --tudo    apaga também os modelos baixados do Ollama (~11 GB) e a imagem construída
 #   ./stop.sh --sim     não pergunta nada (para uso em scripts)
 #
@@ -31,10 +31,11 @@ if [[ $YES == 0 ]]; then
 fi
 
 if [[ $ALL == 1 ]]; then
-  docker compose --profile ia down --volumes --remove-orphans --rmi local
+  docker compose --profile ia --profile aas down --volumes --remove-orphans --rmi local
 else
-  docker compose --profile ia down --remove-orphans
+  docker compose --profile ia --profile aas down --remove-orphans
   docker volume rm sfal_dados >/dev/null 2>&1 && echo "Dados da linha apagados." || echo "Não havia dados da linha para apagar."
+  docker volume rm sfal_faaast >/dev/null 2>&1 || true      # configuração gerada do FA³ST (refeita na próxima subida)
 fi
 rm -f .sfal-mode
 echo "Pronto. Para subir de novo: ./start.sh simulation   ou   ./start.sh prod"

@@ -16,6 +16,7 @@ paths:
 | Motor | `software/sfal/engine.py`, `kpi.py`, `spc.py`, `store.py` | config, SQLite | relógio de parede, MQTT, HTTP, saber se a origem é `sim` ou `esp32` |
 | Simulação do M2 | `software/sfal/m2` | SimPy | depender do motor, do firmware ou de MQTT; mudar hipóteses sem atualizar `tests/test_m2.py` |
 | Inspeção óptica | `software/sfal/vision`, `models/` | Pillow, onnxruntime; Ollama só como alternativa | aprovar sem veredito; PyTorch em produção; trocar de modelo sem medir contra gabarito |
+| AAS | `software/sfal/aas`, `infra/basyx` | motor (leitura), httpx, MQTT | ser importado pelo motor; escrever na linha; publicar gêmeo retido ou a cada segundo (docs/AAS.md) |
 | Síntese | `software/sfal/sintese.py`, `config/m1.yaml` | `kpi`, `m2`, motor (leitura) | escrever no banco; apresentar número sem origem |
 | Borda | `software/sfal/api.py`, `mqtt.py`, `assistant.py`, `web/` | motor | SQL direto; recalcular indicador |
 

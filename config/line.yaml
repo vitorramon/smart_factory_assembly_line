@@ -35,6 +35,7 @@ costs:
 
 stations:
   smt:
+    skill: Soldagem SMT e refusão
     name: SMT + refusão
     ideal_cycle_s: 12
     reader: false        # sem leitor: a unidade nasce aqui e o servidor atribui o número de série
@@ -42,12 +43,14 @@ stations:
     spc: {signal: temp, label: Forno de refusão, unit: "°C", target: 245.0, sigma: 1.5}
     sim: {mean_s: 12, cv: 0.05, defect: solda, defect_p: 0.08, mtbf_s: 1800, mttr_s: 40, temp: 245.0, temp_noise: 0.6}
   aoi:
+    skill: Inspeção óptica por IA
     name: Inspeção óptica (AOI)
     ideal_cycle_s: 8
     reader: true
     on_fail: rework
     sim: {mean_s: 8, cv: 0.05, detects: [solda], detect_p: 0.95, false_fail_p: 0.01, rework_s: 45, fix_p: 0.9}
   asm:
+    skill: Montagem manual guiada
     kind: manual          # manual = posto com operador (só muda o desenho no painel)
     name: Montagem manual
     ideal_cycle_s: 16
@@ -56,18 +59,32 @@ stations:
     sim: {mean_s: 17, cv: 0.25, defect: montagem, defect_p: 0.05, mtbf_s: 1200, mttr_s: 30, temp: 26.0, temp_noise: 0.15,
           rework_s: 30, fix_p: 1.0}
   tst:
+    skill: Teste funcional
     name: Teste funcional
     ideal_cycle_s: 12
     reader: true
     on_fail: rework
     sim: {mean_s: 12, cv: 0.08, detects: [solda, montagem], detect_p: 0.99, false_fail_p: 0.01, rework_s: 90, fix_p: 0.85}
   pkg:
+    skill: Embalagem
     kind: manual          # manual = posto com operador (só muda o desenho no painel)
     name: Embalagem
     ideal_cycle_s: 8
     reader: true
     on_fail: rework
     sim: {mean_s: 8, cv: 0.10}
+
+# Produto fabricado e pedidos. O produto e cada unidade (inclusive as ainda só planejadas) são publicados como
+# Asset Administration Shell no BaSyx; as estações, no FA³ST (OPC UA). Ver docs/AAS.md.
+product:
+  id: SFAL-X1
+  name: Celular SFAL X1
+  description: Smartphone de referência da linha (placa principal SMT, chassi, display e bateria)
+  manufacturer: Linha de montagem de celulares (PIM)
+
+orders:
+  auto: true        # true = quando as unidades planejadas estão acabando, o servidor planeja outro lote sozinho
+  lot_size: 20      # unidades por lote planejado
 
 # Inspeção óptica por IA: a estação indicada decide pelo veredito do modelo sobre a foto da placa.
 # A câmera (ou o simulador) envia a foto ao servidor; o servidor classifica e manda o resultado à estação.

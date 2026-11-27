@@ -18,6 +18,7 @@ function render() {
   renderFloor();
   renderFlow();
   renderVision();
+  renderAas();
   renderCharts();
   $("insights").innerHTML = snap.insights.map((i) => `<li class="${i.level}">${esc(i.text)}</li>`).join("");
   $("log").innerHTML = snap.log.map((e) => `<li><time>${clock(e.ts)}</time><span class="${e.level}"></span><span>${linkUnits(esc(e.message))}</span></li>`).join("");
@@ -205,6 +206,36 @@ function renderVision() {
 }
 $("vision-thumbs").addEventListener("click", (e) => { const b = e.target.closest("[data-insp]"); if (b) { visionPick = +b.dataset.insp; renderVision(); } });
 
+// ---------------------------------------------------------------- pedidos e AAS
+const b64url = (t) => btoa(t).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+function renderAas() {
+  const a = snap.aas, k = snap.line.kpi;
+  $("aas-sub").textContent = `${num(k.planned)} unidade(s) planejada(s) aguardando fabricação`;
+  $("orders").innerHTML = `<thead><tr><th>Pedido</th><th>Criado</th><th class="num">Unidades</th><th class="num">Planejadas</th><th class="num">Em produção</th><th class="num">Prontas</th><th class="num">Refugo</th></tr></thead><tbody>` +
+    (snap.orders.length ? snap.orders.map((o) => `<tr><td><b>${o.id}</b> · ${esc(o.product)}</td><td>${clock(o.ts)}</td><td class="num">${o.quantity}</td><td class="num">${o.planned}</td><td class="num">${o.wip}</td><td class="num">${o.done}</td><td class="num">${o.scrap}</td></tr>`).join("")
+      : `<tr><td colspan="7" class="hint">Nenhum pedido. Sem pedido, a unidade nasce na primeira estação.</td></tr>`) + `</tbody>`;
+  const l = a.links, b = a.basyx;
+  const sync = !b.enabled ? "sincronização com o BaSyx desligada (suba com o perfil AAS)"
+    : b.ok ? `BaSyx em dia: ${num(b.synced)} envio(s), ${num(b.pending)} na fila` : `BaSyx indisponível: ${b.error || "conectando"} (${num(b.pending)} na fila)`;
+  $("aas-links").innerHTML = `<p class="status ${!b.enabled ? "gray" : b.ok ? "green" : "red"}">${esc(sync)}</p>
+    <dl class="links">
+      <dt>Produtos · BaSyx (HTTP)</dt>
+      <dd>Catálogo: <a href="${esc(l.gui)}" target="_blank" rel="noopener">${esc(l.gui)}</a></dd>
+      <dd>API: <a href="${esc(l.basyx)}/shells" target="_blank" rel="noopener">${esc(l.basyx)}/shells</a></dd>
+      <dd class="hint">O produto e cada unidade, inclusive as só planejadas, com a situação de fabricação.</dd>
+      <dt>Estações · FA³ST (OPC UA)</dt>
+      <dd>Endpoint: <code>${esc(l.opcua)}</code></dd>
+      <dd>Também por HTTP: <a href="${esc(l.faaast_http)}/shells" target="_blank" rel="noopener">${esc(l.faaast_http)}/shells</a></dd>
+      <dd class="hint">Máquina de estados, indicadores e capacidade de cada estação: Objects → AASEnvironment → Estado_&lt;estação&gt; → Estado → Value.</dd>
+    </dl>`;
+}
+$("order-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const r = await fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ quantity: +$("order-qty").value }) });
+  const d = await r.json().catch(() => ({}));
+  $("order-msg").textContent = r.ok ? `Pedido ${d.id} planejado: ${d.units[0]} a ${d.units[d.units.length - 1]}.` : "Não foi possível planejar o pedido.";
+});
+
 // ---------------------------------------------------------------- gráficos (SVG)
 const W = 640, H = 170, M = { l: 40, r: 12, t: 8, b: 20 };
 const sx = (v, a, b) => M.l + ((v - a) / (b - a || 1)) * (W - M.l - M.r);
@@ -295,7 +326,8 @@ async function showUnit(id) {
   const r = await fetch("/api/units/" + encodeURIComponent(id));
   if (!r.ok) { $("trace-out").innerHTML = `<p>Unidade <b>${esc(id)}</b> não encontrada.</p>`; return; }
   const d = await r.json(), u = d.unit;
-  const label = { wip: "em processo", rework: "aguardando retrabalho", done: "pronta", scrap: "refugada", removed: "retirada da linha (simulador reiniciado)" }[u.status];
+  const label = { planned: "planejada (ainda não fabricada)", wip: "em processo", rework: "aguardando retrabalho", done: "pronta", scrap: "refugada", removed: "retirada da linha (simulador reiniciado)" }[u.status];
+  const aasLink = snap?.aas?.basyx?.enabled ? ` · <a href="${esc(snap.aas.links.basyx)}/shells/${b64url("urn:sfal:aas:unit:" + u.id)}" target="_blank" rel="noopener">AAS no BaSyx</a>` : "";
   const lead = u.finished_ts && u.status !== "removed" ? dur(u.finished_ts - u.created_ts) : "—";
   let prevEnd = null;
   const rows = d.steps.map((s) => {
@@ -305,7 +337,7 @@ async function showUnit(id) {
     return `<tr><td>${esc(s.station_name)}</td><td class="num">${s.attempt}</td><td>${clock(s.start_ts)}</td><td class="num">${wait}</td><td class="num">${s.dur_ms == null ? "—" : num(s.dur_ms / 1000, 1) + " s"}</td><td>${res}${s.degraded ? " · modo degradado" : ""}</td><td class="num">${s.temp == null ? "—" : num(s.temp, 1) + " °C"}</td></tr>`;
   }).join("");
   const log = d.log.map((e) => `<li><time>${clock(e.ts)}</time><span class="${e.level}"></span><span>${esc(e.message)}</span></li>`).join("");
-  $("trace-out").innerHTML = `<p><b>${esc(u.id)}</b> · ${label} · entrou às ${clock(u.created_ts)} · lead time ${lead} · ${u.fails} reprovação(ões)${u.next_station ? " · esperada em <b>" + esc(u.next_station) + "</b>" : ""}</p>
+  $("trace-out").innerHTML = `<p><b>${esc(u.id)}</b> · ${label} · entrou às ${clock(u.created_ts)} · lead time ${lead} · ${u.fails} reprovação(ões)${u.next_station ? " · esperada em <b>" + esc(u.next_station) + "</b>" : ""}${u.order_id ? " · pedido " + u.order_id : ""}${aasLink}</p>
     <div class="table-wrap"><table><thead><tr><th>Estação</th><th class="num">Tentativa</th><th>Início</th><th class="num">Espera antes</th><th class="num">Ciclo</th><th>Resultado</th><th class="num">Temp. na estação</th></tr></thead><tbody>${rows}</tbody></table></div>
     ${d.inspections?.length ? `<div class="thumbs" style="margin-top:12px">${d.inspections.map((i) => `<a class="thumb ${i.ok === 0 ? "nok" : ""}" href="/api/vision/photo/${encodeURIComponent(i.image)}" target="_blank" rel="noopener" title="${esc(verdictText(i))}"><img src="/api/vision/photo/${encodeURIComponent(i.image)}" alt="Foto da inspeção óptica"><span>${esc(verdictText(i))}</span></a>`).join("")}</div>` : ""}
     ${log ? `<ol class="log" style="margin-top:10px">${log}</ol>` : ""}`;
