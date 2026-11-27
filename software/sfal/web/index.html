@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linha de montagem de celulares</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="css/views.css">
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1>Linha de montagem de celulares</h1>
+    <p class="sub">Do diagnóstico Lean à linha conectada</p>
+  </div>
+  <div class="pills">
+    <span class="pill" id="pill-server">servidor</span>
+    <span class="pill" id="pill-broker">broker</span>
+    <span class="pill" id="pill-sim">simulador</span>
+    <span class="pill" id="pill-ai">IA local</span>
+  </div>
+</header>
+<nav class="views" role="tablist" aria-label="Etapas do projeto">
+  <button role="tab" data-view="m1"><span>1</span><b>Problema e metas</b><small>M1 · diagnóstico Lean</small></button>
+  <button role="tab" data-view="m2"><span>2</span><b>Simulação</b><small>M2 · problema × solução, sem hardware</small></button>
+  <button role="tab" data-view="m3"><span>3</span><b>Linha conectada</b><small>M3 · estações, firmware e servidor</small></button>
+  <button role="tab" data-view="sintese"><span>4</span><b>Síntese</b><small>do problema ao resultado</small></button>
+</nav>
+
+<!-- ============================================================ 1 · M1 -->
+<main class="view" id="view-m1" hidden>
+  <div class="grid3" id="m1-hero"></div>
+
+  <section>
+    <h2>Indicadores: situação atual e meta em 90 dias</h2>
+    <div class="cols">
+      <div class="tiles two" id="m1-kpis"></div>
+      <div class="panel chart" id="m1-radar"></div>
+    </div>
+  </section>
+
+  <section><h2>Três problemas interligados</h2><div class="grid3" id="m1-pilares"></div></section>
+
+  <section class="panel">
+    <h2>Fluxograma do processo atual, com os três pontos-problema</h2>
+    <div class="figure"><img src="img/m1-fluxo-atual.png" alt="Fluxograma do processo atual da linha, do recebimento de insumos à expedição, com os pontos-problema P1, P2 e P3 marcados" loading="lazy"></div>
+    <ul class="points" id="m1-pontos"></ul>
+  </section>
+
+  <section><h2>Os oito desperdícios (TIM WOODS)</h2><div class="wastes" id="m1-waste"></div></section>
+
+  <section class="panel">
+    <h2>Análise de causa: Ishikawa (6M) e 5 Porquês <span class="hint">clique numa espinha para ver os porquês</span></h2>
+    <div id="m1-fish"></div>
+    <div class="why" id="m1-why"></div>
+  </section>
+
+  <div class="cols">
+    <section class="panel chart"><h2>Priorização: Pareto de falhas</h2><div id="m1-pareto"></div><p class="hint" id="m1-pareto-note"></p></section>
+    <section class="panel"><h2>Ferramentas Lean escolhidas</h2><div class="table-wrap"><table id="m1-lean"></table></div></section>
+  </div>
+
+  <section class="panel"><h2>Plano de ação</h2><div class="table-wrap"><table id="m1-plano"></table></div></section>
+
+  <section class="panel">
+    <h2>Processo futuro proposto</h2>
+    <div class="figure"><img src="img/m1-fluxo-futuro.png" alt="Fluxograma do processo futuro: gravação de QR Code em cada placa, inspeção por visão computacional com separação automática e parada de linha, e manufatura guiada nas montagens" loading="lazy"></div>
+    <div id="m1-futuro"></div>
+  </section>
+  <footer id="m1-refs"></footer>
+</main>
+
+<!-- ============================================================ 2 · M2 -->
+<main class="view" id="view-m2" hidden>
+  <div class="view-head"><div><h2 class="big">Simulação da linha completa</h2><p class="hint" id="m2-status">carregando…</p></div>
+    <p class="hint narrow">Modelo SimPy do M2: 10 etapas de SMT e 12 estações manuais, chegadas a cada 20 s. Tudo aqui é simulação com hipóteses didáticas; nenhum hardware envolvido.</p></div>
+
+  <div class="scenarios">
+    <div class="panel scenario sel" id="m2-card-problema" role="button" tabindex="0"><i style="background:var(--series-2)"></i><div><b>Problema</b><p class="desc hint"></p><span class="watch">mostrar esta linha</span></div></div>
+    <div class="panel scenario" id="m2-card-solucao" role="button" tabindex="0"><i style="background:var(--series)"></i><div><b>Solução · <select id="m2-solution" aria-label="Cenário de solução"></select></b><p class="desc hint"></p><span class="watch">mostrar esta linha</span></div></div>
+  </div>
+
+  <div class="panel playbar">
+    <button class="main" id="m2-play">Reproduzir</button><button id="m2-reset">Início</button><button id="m2-end">Fim do turno</button>
+    <label>Velocidade <select id="m2-speed"><option value="20">20×</option><option value="60">60×</option><option value="300" selected>300×</option><option value="1200">1200×</option></select></label>
+    <label>Turno <select id="m2-hours"><option value="1">1 h</option><option value="2">2 h</option><option value="4">4 h</option><option value="8" selected>8 h</option></select></label>
+    <input id="m2-seek" type="range" min="0" step="1" value="0" aria-label="Tempo simulado">
+    <span class="clock" id="m2-clock"></span>
+  </div>
+
+  <section class="tiles" id="m2-kpis"></section>
+
+  <section class="panel">
+    <h2>Linha SMT e montagem <span class="hint" id="m2-line-title"></span></h2>
+    <canvas id="m2-line"></canvas>
+    <p class="hint">Borda amarela: em operação · borda vermelha: reprovação recente · quadrados azuis sob o posto: placas na fila. Retidas no SPI e na AOI saem para análise externa e não voltam.</p>
+  </section>
+
+  <section class="panel"><h2>Problema × solução ao longo do turno</h2><div class="chart-grid" id="m2-charts"></div></section>
+
+  <div class="cols">
+    <section class="panel chart"><h2>Radar dos indicadores</h2><div id="m2-radar"></div>
+      <p class="hint">OEE da linha = aprovadas na embalagem × ciclo ideal de 20 s ÷ tempo transcorrido; o modelo não tem paradas (disponibilidade de 100 %). 1 − COPQ usa custos hipotéticos por ocorrência: SPI R$ 15, AOI R$ 60, teste R$ 240; valor de referência R$ 240 por placa.</p></section>
+    <section class="panel"><h2>Falhas detectadas por posto</h2><div id="m2-failures"></div>
+      <h2 style="margin-top:18px">Indicadores no instante selecionado</h2><div class="table-wrap"><table id="m2-table"></table></div></section>
+  </div>
+
+  <section class="panel"><h2>Estado das estações <span class="hint">da linha mostrada acima</span></h2>
+    <div class="table-wrap"><table><thead><tr><th>Estação</th><th>Estado</th><th class="num">Fila</th><th class="num">Processadas</th><th class="num">Ocupação</th></tr></thead><tbody id="m2-stations"></tbody></table></div></section>
+</main>
+
+<!-- ============================================================ 3 · M3 -->
+<main class="view" id="view-m3" hidden>
+  <div class="view-head"><div><h2 class="big">Linha conectada</h2><p class="hint" id="line-sub">conectando…</p></div><button id="btn-shift" title="Zera os indicadores a partir de agora">Novo turno</button></div>
+  <section class="tiles" id="tiles" aria-label="Indicadores da linha"></section>
+
+  <section aria-label="Chão de fábrica">
+    <h2>Chão de fábrica <span class="hint">cada retângulo é uma unidade (clique para ver a história); a posição vem do que as estações informam</span></h2>
+    <div class="floor" id="floor"><div class="stage" id="stage">
+      <div class="belt"></div>
+      <div id="floor-static"></div>
+      <div id="floor-live"></div>
+      <div id="floor-units"></div>
+    </div></div>
+    <div class="legend floor-legend"><span class="u">na fila ou em processo</span><span class="u rework">aguardando retrabalho</span><span class="u out">reprovada, saindo como refugo</span><span class="plain">torre: verde em ciclo · amarelo atenção · vermelho parada, bloqueio ou chamado</span></div>
+  </section>
+
+  <section aria-label="Fluxo da linha">
+    <h2>Estações <span class="hint">detalhe de cada estação; o número entre elas é a fila de unidades esperando</span></h2>
+    <div class="flow" id="flow"></div>
+  </section>
+
+  <section class="panel" id="vision-panel" hidden>
+    <h2>Inspeção óptica por IA <span class="hint" id="vision-sub"></span></h2>
+    <div class="vision">
+      <figure class="shot" id="vision-shot"></figure>
+      <div>
+        <div class="tiles compact" id="vision-stats"></div>
+        <p class="hint" id="vision-note"></p>
+        <div class="thumbs" id="vision-thumbs"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="cols">
+    <section class="panel">
+      <h2>Processo</h2>
+      <div id="charts"></div>
+    </section>
+    <section class="panel">
+      <h2>Diagnóstico</h2>
+      <ul class="insights" id="insights"></ul>
+      <h2>Diário</h2>
+      <ol class="log" id="log"></ol>
+    </section>
+  </div>
+
+  <section class="panel">
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="trace" aria-selected="true">Rastreabilidade</button>
+      <button role="tab" data-tab="ai" aria-selected="false">Assistente</button>
+      <button role="tab" data-tab="whatif" aria-selected="false">E se?</button>
+      <button role="tab" data-tab="sim" aria-selected="false">Provocar falhas</button>
+    </nav>
+
+    <div class="tab" id="tab-trace">
+      <form id="trace-form" class="row">
+        <input id="trace-id" placeholder="Número de série, ex.: U-000042" autocomplete="off">
+        <button>Buscar</button>
+        <span class="hint">ou clique numa unidade abaixo</span>
+      </form>
+      <div class="chips" id="trace-recent"></div>
+      <div id="trace-out"></div>
+    </div>
+
+    <div class="tab" id="tab-ai" hidden>
+      <form id="ai-form" class="row">
+        <input id="ai-q" placeholder="Pergunte sobre a linha: onde está o gargalo? por que o FPY caiu?" autocomplete="off">
+        <button>Perguntar</button>
+        <button type="button" id="ai-report">Relatório do turno</button>
+      </form>
+      <div class="chips" id="ai-suggest"></div>
+      <div class="answer" id="ai-out" aria-live="polite"></div>
+    </div>
+
+    <div class="tab" id="tab-whatif" hidden>
+      <form id="whatif-form" class="row">
+        <span id="whatif-scenarios" class="checks"></span>
+        <label>Turno de <input id="whatif-hours" type="number" min="0.5" max="12" step="0.5" value="8"> h</label>
+        <button>Simular</button>
+      </form>
+      <p class="hint">Roda o turno em tempo acelerado com o mesmo firmware e o mesmo cálculo de indicadores. Os cenários são hipóteses definidas em <code>config/line.yaml</code>, não medições.</p>
+      <div id="whatif-out"></div>
+    </div>
+
+    <div class="tab" id="tab-sim" hidden>
+      <p class="hint" id="sim-hint"></p>
+      <div class="row" id="sim-controls"></div>
+    </div>
+  </section>
+</main>
+
+<!-- ============================================================ 4 · Síntese -->
+<main class="view" id="view-sintese" hidden>
+  <div class="view-head"><div><h2 class="big">Do problema ao resultado</h2><p class="hint" id="s-origin">carregando…</p></div></div>
+
+  <section class="panel">
+    <h2>Os indicadores em cada etapa</h2>
+    <div class="table-wrap"><table id="s-score"></table></div>
+    <p class="hint">✔ na meta · ▲ entre a situação atual do M1 e a meta · ✕ abaixo da situação atual do M1. M2: turno de 8 h, semente 7.</p>
+  </section>
+
+  <section class="panel"><h2>Evolução de cada indicador <span class="hint">faixa = entre a situação atual do M1 e a meta; tracejado = meta</span></h2><div class="chart-grid four" id="s-evo"></div></section>
+
+  <div class="cols">
+    <section class="panel chart"><h2>Teia dos indicadores</h2><div id="s-radar"></div><div class="checks" id="s-radar-toggle"></div></section>
+    <section class="panel"><h2>Leitura</h2><ul class="reading" id="s-reading"></ul></section>
+  </div>
+
+  <section class="panel">
+    <h2>Ishikawa: o que foi feito com cada causa-raiz <span class="hint">clique numa espinha</span></h2>
+    <p class="hint" id="s-fish-sum"></p>
+    <div id="s-fish"></div>
+    <div class="cols">
+      <div class="why" id="s-cause"></div>
+      <div class="table-wrap"><table id="s-cause-table"></table></div>
+    </div>
+  </section>
+
+  <section class="panel"><h2>Pareto: onde as falhas aparecem em cada etapa</h2>
+    <div class="chart-grid four" id="s-pareto"></div>
+    <p class="hint">As categorias mudam de etapa para etapa: o M1 classifica por tipo de falha; M2 e M3 registram o posto que a detectou. O deslocamento das barras do teste final para a inspeção é o efeito da qualidade na fonte.</p></section>
+
+  <section class="panel"><h2>Fluxo: lead time, WIP e vazão</h2><div class="chart-grid three" id="s-flow"></div>
+    <p class="hint">O M1 não definiu referência nem meta para estes três. M2 simula 22 estações; o M3 tem 5: os valores absolutos não são comparáveis entre si, só a direção.</p></section>
+
+  <section class="panel"><h2>O que cada etapa representa</h2><div class="table-wrap"><table id="s-scope"></table></div></section>
+</main>
+
+<div id="tip" class="tip" hidden></div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

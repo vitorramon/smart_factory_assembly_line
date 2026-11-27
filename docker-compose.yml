@@ -1,0 +1,81 @@
+# Smart Factory Assembly Line — pilha completa.
+#
+#   docker compose up -d --build                 broker + backend + simulador (painel em http://localhost:8000)
+#   docker compose --profile ia up -d            acrescenta a IA local (Ollama, usa a GPU se houver)
+#   docker compose up -d broker backend          sem simulador: para ligar placas ESP32 reais
+#   docker compose down                          derruba (os volumes ficam)
+name: sfal
+
+services:
+  broker:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    ports:
+      - "${SFAL_MQTT_PORT:-1883}:1883"
+    volumes:
+      - ./infra/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    healthcheck:
+      test: ["CMD", "mosquitto_sub", "-h", "localhost", "-t", "$$SYS/broker/uptime", "-C", "1", "-W", "3"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: .
+    restart: unless-stopped
+    command: ["sfal", "server"]
+    depends_on:
+      broker: {condition: service_healthy}
+    environment:
+      SFAL_MQTT_HOST: broker
+      SFAL_OLLAMA_URL: http://ollama:11434
+      SFAL_OLLAMA_MODEL: ${SFAL_OLLAMA_MODEL:-qwen2.5:7b}
+    ports:
+      - "${SFAL_HTTP_PORT:-8000}:8000"
+    volumes:
+      - dados:/data
+      - ./config:/app/config:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  simulator:
+    build: .
+    restart: unless-stopped
+    command: ["sfal", "sim"]
+    depends_on:
+      backend: {condition: service_healthy}
+    environment:
+      SFAL_MQTT_HOST: broker
+      SFAL_BACKEND_URL: http://backend:8000
+      SFAL_REAL: ${SFAL_REAL:-}
+    volumes:
+      - ./config:/app/config:ro
+
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["ia"]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${SFAL_OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama:/root/.ollama
+    # GPU NVIDIA (Docker Desktop + WSL2 ou nvidia-container-toolkit). Sem GPU, apague o bloco deploy.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  ollama:
+  dados:

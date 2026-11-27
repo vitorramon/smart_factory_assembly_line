@@ -1,0 +1,11 @@
+**/.venv
+**/.pio
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+firmware/sim/build
+firmware/include/secrets.h
+data
+.env
+.git
+docs

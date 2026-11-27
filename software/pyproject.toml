@@ -1,0 +1,35 @@
+[project]
+name = "sfal"
+version = "1.0.0"
+description = "Smart Factory Assembly Line: servidor da linha, painel e simulador que executa o firmware real"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.115,<1",
+    "uvicorn[standard]>=0.32,<1",
+    "paho-mqtt>=2.1,<3",
+    "pyyaml>=6,<7",
+    "httpx>=0.27,<1",
+    "simpy>=4.1,<5",
+    "pillow>=11,<13",
+    "onnxruntime>=1.20,<2",
+    "numpy>=2,<3",
+]
+
+[project.scripts]
+sfal = "sfal.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["sfal"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 110

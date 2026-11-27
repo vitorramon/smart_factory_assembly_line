@@ -1,0 +1,110 @@
+# Definição da linha. Tudo o que o servidor, o painel e o simulador sabem sobre a fábrica está aqui.
+# Acrescentar uma estação = acrescentar um bloco em `stations` (a ordem é a rota) e gravar uma placa
+# com o mesmo id (firmware/platformio.ini). Nenhum código muda.
+
+line:
+  name: Linha de montagem de celulares
+  takt_s: 20            # ritmo do cliente: uma unidade a cada 20 s
+  kpi_window_min: 0     # 0 = KPIs desde o início do turno (botão "Novo turno"); N = janela móvel de N minutos
+
+rules:
+  interlock: true          # a estação só inicia o ciclo com liberação do servidor (rota e qualidade na fonte)
+  fail_open: true          # servidor mudo: true = segue em modo degradado; false = bloqueia
+  release_timeout_ms: 1500
+  max_attempts: 3          # reprovações na mesma estação antes de virar refugo
+  jidoka: true             # alarme vermelho de processo (CEP) segura novas unidades na estação
+  offline_after_s: 10      # sem telemetria por esse tempo = estação offline
+  tel_ms: 2000
+
+# Referência e meta dos indicadores (diagnóstico Lean da linha: situação atual -> meta em 90 dias).
+# O painel pinta: verde >= meta, amarelo entre referência e meta, vermelho < referência.
+targets:
+  fpy: {baseline: 0.78, goal: 0.92}
+  rty: {baseline: 0.82, goal: 0.90}
+  oee: {baseline: 0.68, goal: 0.80}
+  copq: {baseline: 0.95, goal: 0.98}   # 1 − COPQ
+
+# Custo da não qualidade (R$). HIPÓTESES, na mesma ordem de grandeza das usadas na simulação do M2:
+# cada reprovação custa o tratamento na estação que a detectou; cada refugo custa a unidade inteira.
+# 1 − COPQ = 1 − custo ÷ (unidades iniciadas × valor da unidade).
+costs:
+  unit: 240
+  scrap: 240
+  nok_default: 60
+  nok: {aoi: 60, tst: 240}
+
+stations:
+  smt:
+    name: SMT + refusão
+    ideal_cycle_s: 12
+    reader: false        # sem leitor: a unidade nasce aqui e o servidor atribui o número de série
+    on_fail: scrap
+    spc: {signal: temp, label: Forno de refusão, unit: "°C", target: 245.0, sigma: 1.5}
+    sim: {mean_s: 12, cv: 0.05, defect: solda, defect_p: 0.08, mtbf_s: 1800, mttr_s: 40, temp: 245.0, temp_noise: 0.6}
+  aoi:
+    name: Inspeção óptica (AOI)
+    ideal_cycle_s: 8
+    reader: true
+    on_fail: rework
+    sim: {mean_s: 8, cv: 0.05, detects: [solda], detect_p: 0.95, false_fail_p: 0.01, rework_s: 45, fix_p: 0.9}
+  asm:
+    kind: manual          # manual = posto com operador (só muda o desenho no painel)
+    name: Montagem manual
+    ideal_cycle_s: 16
+    reader: true
+    on_fail: rework
+    sim: {mean_s: 17, cv: 0.25, defect: montagem, defect_p: 0.05, mtbf_s: 1200, mttr_s: 30, temp: 26.0, temp_noise: 0.15,
+          rework_s: 30, fix_p: 1.0}
+  tst:
+    name: Teste funcional
+    ideal_cycle_s: 12
+    reader: true
+    on_fail: rework
+    sim: {mean_s: 12, cv: 0.08, detects: [solda, montagem], detect_p: 0.99, false_fail_p: 0.01, rework_s: 90, fix_p: 0.85}
+  pkg:
+    kind: manual          # manual = posto com operador (só muda o desenho no painel)
+    name: Embalagem
+    ideal_cycle_s: 8
+    reader: true
+    on_fail: rework
+    sim: {mean_s: 8, cv: 0.10}
+
+# Inspeção óptica por IA: a estação indicada decide pelo veredito do modelo sobre a foto da placa.
+# A câmera (ou o simulador) envia a foto ao servidor; o servidor classifica e manda o resultado à estação.
+vision:
+  station: aoi
+  engine: cnn                 # cnn = classificador treinado (models/aoi.onnx) | ollama = modelo de visão genérico
+  model_path: models/aoi.onnx
+  ollama_model: qwen2.5vl:7b  # só com engine: ollama (medido: detecta 35 % dos defeitos; ver README)
+  timeout_s: 15               # sem veredito nesse tempo, o simulador decide como antes (sorteio) e registra
+
+# IA local (Ollama). Sem ela o painel continua funcionando com o diagnóstico por regras.
+assistant:
+  url: http://localhost:11434     # no docker compose: SFAL_OLLAMA_URL=http://ollama:11434
+  model: qwen2.5:7b
+
+simulation:
+  seed: 42
+  arrival_s: 20        # uma placa nova disponível a cada N segundos na primeira estação
+  transfer_s: 2        # transporte entre estações
+
+# Cenários do "E se?": cada um é um remendo sobre este arquivo. São HIPÓTESES de simulação
+# (parâmetros escolhidos para representar a situação), não medições.
+scenarios:
+  padrao:
+    label: Configuração atual do arquivo
+    patch: {}
+  atual:
+    label: "Situação de partida: defeito só aparece no teste final, montagem sem padrão"
+    patch:
+      rules: {interlock: false, jidoka: false}
+      stations:
+        smt: {sim: {defect_p: 0.10}}
+        aoi: {sim: {detect_p: 0.0, false_fail_p: 0.0}}
+        asm: {sim: {mean_s: 19, cv: 0.40, defect_p: 0.10}}
+  futuro:
+    label: "Estado futuro: qualidade na fonte + trabalho padronizado + processo SMT estável"
+    patch:
+      stations:
+        smt: {sim: {defect_p: 0.03, mtbf_s: 3600}}
+        asm: {sim: {mean_s: 16, cv: 0.12, defect_p: 0.02, mtbf_s: 2400}}

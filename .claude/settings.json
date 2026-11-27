@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "language": "portuguese",
+  "includeCoAuthoredBy": false,
+  "permissions": {
+    "allow": [
+      "Bash(uv --version)",
+      "Bash(uv sync*)",
+      "Bash(uv run pytest*)",
+      "Bash(uv run ruff*)",
+      "Bash(uv run sfal whatif*)",
+      "Bash(uv run --project software python tools/golden.py)",
+      "Bash(pio --version)",
+      "Bash(pio test -e native*)",
+      "Bash(pio run -e *)",
+      "Bash(./sim/build.sh)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(git branch*)",
+      "Bash(docker version*)",
+      "Bash(docker info*)",
+      "Bash(docker ps*)",
+      "Bash(docker image ls*)",
+      "Bash(docker compose version)",
+      "Bash(docker compose ps*)",
+      "Bash(docker compose logs*)",
+      "Bash(docker compose config*)",
+      "Bash(docker compose up -d*)",
+      "Bash(docker compose --profile ia up -d*)",
+      "Bash(docker compose restart*)",
+      "Bash(docker compose exec -T ollama ollama list)",
+      "Bash(docker compose exec -T ollama ollama ps)",
+      "Bash(docker compose exec broker mosquitto_sub *)",
+      "Bash(curl -s localhost:8000/api/*)",
+      "Bash(df -h*)"
+    ],
+    "ask": [
+      "Bash(git push*)",
+      "Bash(git tag*)",
+      "Bash(git reset --hard*)",
+      "Bash(docker desktop *)",
+      "Bash(docker system prune*)",
+      "Bash(docker volume rm *)",
+      "Bash(docker image rm *)",
+      "Bash(docker rmi *)",
+      "Bash(docker rm *)",
+      "Bash(docker compose down*)",
+      "Bash(docker compose * down*)",
+      "Bash(pio run * -t upload*)",
+      "Bash(sudo *)",
+      "Bash(apt *)",
+      "Bash(apt-get *)"
+    ],
+    "deny": [
+      "Read(**/.env)",
+      "Edit(**/.env)",
+      "Read(**/secrets.h)",
+      "Edit(**/secrets.h)"
+    ]
+  }
+}

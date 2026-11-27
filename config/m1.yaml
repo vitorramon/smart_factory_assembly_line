@@ -1,0 +1,209 @@
+# Módulo 1 — diagnóstico Lean e metas. Transcrito da entrega "PPGEE_Grupo_7_Cen_8.pptx" (Grupo 7, Cenário 08).
+# É o ponto de partida da história: as abas "Simulação" e "Linha conectada" são comparadas com o que está aqui.
+# Os blocos `m2` e `m3` de cada causa-raiz dizem como ela foi tratada nos módulos seguintes; em `m3.texto`,
+# {chaves} são trocadas por números ao vivo da linha (ver software/sfal/sintese.py, função `evidence`).
+
+titulo: Cenário 08 — Montagem de celulares (Polo Industrial de Manaus)
+fonte: "Entrega do Módulo 1 (PPGEE_Grupo_7_Cen_8.pptx), Grupo 7"
+
+cenario: >-
+  Linha mista com robôs SMT e 12 operadoras no acabamento e teste. Defeitos de solda em 2 % das placas, detectados
+  apenas no teste final, depois do consumo de componentes caros. Cada operadora monta "do seu jeito".
+
+contexto:
+  - Planta na Zona Franca de Manaus, com produção para o mercado interno e exportação.
+  - Os incentivos fiscais precisam operar junto com excelência operacional para compensar os custos logísticos da região.
+  - Padronizar o trabalho e conter defeitos na origem reduz diretamente o custo da não qualidade.
+
+problema_central: >-
+  Ausência de qualidade na fonte na etapa automatizada SMT, que permite a propagação de defeitos e gera
+  superprocessamento, combinada à falta de trabalho padronizado na etapa manual, o que inviabiliza a estabilidade e a
+  melhoria contínua do processo.
+
+pilares:
+  - titulo: Qualidade na fonte
+    autor: Shingo (1986)
+    texto: As falhas de solda da etapa SMT só são identificadas no teste final; o controle eficaz contém o erro no momento e local em que ocorre.
+  - titulo: Trabalho padronizado
+    autor: Ohno (1997)
+    texto: Cada operadora monta sem método único, o que eleva a variabilidade e inviabiliza o balanceamento. Sem padrão não há melhoria contínua.
+  - titulo: Superprocessamento
+    autor: Shingo (1996)
+    texto: A inspeção só no fim é inspeção de julgamento, que atesta a falha depois de a linha agregar custo a um item já condenado.
+
+smart: >-
+  Reduzir a 0 % o avanço de placas com defeito de solda para a etapa de acabamento e padronizar o método de montagem
+  em 100 % das 12 estações manuais em 90 dias, sem redução da capacidade produtiva atual.
+
+pontos_problema:
+  - id: P1
+    texto: Peças não são testadas ou inspecionadas antes do envio para a próxima etapa.
+  - id: P2
+    texto: Não existe padronização nas operações de montagem.
+  - id: P3
+    texto: Defeitos de montagem são detectados apenas nas últimas etapas do processo.
+
+# Os oito desperdícios (TIM WOODS). `prioritario` = destacado na síntese do slide 10.
+desperdicios:
+  - {letra: T, nome: Transporte, texto: "Placas defeituosas percorrem a linha em vez de serem retidas na origem.", prioritario: false}
+  - {letra: I, nome: Inventário, texto: "Tempos de ciclo desiguais geram acúmulo de material entre os postos.", prioritario: false}
+  - {letra: M, nome: Movimentação, texto: "A falta de método padronizado gera movimentos e buscas desnecessárias.", prioritario: true}
+  - {letra: W, nome: Espera, texto: "O desbalanceamento deixa operadoras ociosas à espera das etapas adjacentes.", prioritario: true}
+  - {letra: O, nome: Superprodução, texto: "O fluxo empurrado pode gerar produção acima da necessidade da etapa seguinte.", prioritario: false}
+  - {letra: O, nome: Superprocessamento, texto: "Placas defeituosas recebem componentes caros e trabalho adicional.", prioritario: true}
+  - {letra: D, nome: Defeitos, texto: "Falhas de solda em 2 % das placas são detectadas apenas no teste final.", prioritario: true}
+  - {letra: S, nome: Habilidades não utilizadas, texto: "A equipe tem pouca participação na melhoria e no tratamento de anomalias.", prioritario: true}
+
+ferramentas_lean:
+  - ferramenta: Poka-Yoke e Andon (Jidoka)
+    problema: Os 2 % de defeitos de solda da máquina SMT.
+    aplicacao: Detectar falhas após a soldagem com AOI, sinalizar anomalias e bloquear o avanço de placas reprovadas.
+  - ferramenta: Trabalho padronizado e gráfico de Yamazumi
+    problema: A variabilidade entre as 12 operadoras.
+    aplicacao: Medir tempos, padronizar a sequência de montagem e redistribuir as tarefas conforme o takt time.
+  - ferramenta: Mapeamento do fluxo de valor (VSM)
+    problema: A visão sistêmica dos desperdícios ao longo de toda a cadeia.
+    aplicacao: Mapear tempos, estoques e retrabalho no estado atual e projetar um fluxo futuro com menos desperdícios.
+
+tecnologia_40:
+  - Visão computacional integrada ao CLP, para detectar falhas e bloquear placas reprovadas.
+  - IoT e manufatura guiada, para registrar tempos e orientar a montagem padronizada.
+
+# Indicadores: situação atual e projeção em 90 dias (slide 17). Frações de 0 a 1.
+indicadores:
+  - {id: fpy, nome: FPY, descricao: First Pass Yield, atual: 0.78, meta: 0.92}
+  - {id: rty, nome: RTY, descricao: Rolled Throughput Yield, atual: 0.82, meta: 0.90}
+  - {id: oee, nome: OEE, descricao: Overall Equipment Effectiveness, atual: 0.68, meta: 0.80}
+  - {id: copq, nome: 1 − COPQ, descricao: "Custo da não qualidade (scrap), expresso como 1 − COPQ", atual: 0.95, meta: 0.98}
+
+# Pareto de falhas, lote de 10 mil unidades (slide 14).
+pareto:
+  lote: 10000
+  itens:
+    - {categoria: Falha de solda, qtd: 116, origem: SMT}
+    - {categoria: Falha de montagem SMT, qtd: 86, origem: SMT}
+    - {categoria: Falha de montagem final, qtd: 25, origem: Montagem}
+    - {categoria: Falsa falha, qtd: 18, origem: Teste}
+  leitura: >-
+    Falha de solda e falha de montagem SMT concentram 82,45 % das falhas registradas. Ambas se originam na etapa SMT,
+    alvo da inspeção automatizada com bloqueio prevista no plano de ação.
+
+ishikawa:
+  efeito: 2 % de defeitos detectados só no teste final
+  causas:
+    - m: Máquina
+      efeito_local: Avanço contínuo de placas com defeito geradas pela SMT.
+      porques:
+        - A máquina SMT não interrompe a esteira ao gerar uma solda fria.
+        - Não possui sistema autônomo de identificação de anomalias em tempo real.
+        - A automação foi projetada apenas para depositar componentes, sem o princípio de autonomação.
+        - O CLP da linha não recebe dados de inspeção após o forno de refusão.
+        - O processo não conta com visão computacional (AOI) instalada na origem do defeito.
+      causa_raiz: Ausência de inspeção automatizada (AOI) acoplada ao CLP da máquina SMT.
+      contramedida: Inspecionar após a refusão e impedir o avanço de placas reprovadas.
+      ferramenta: Visão computacional (AOI), Jidoka e Poka-Yoke para separação
+      m2: "Cenário SPI/AOI: SPI após a impressora e AOI após o forno, cada uma detectando 95 % dos defeitos que enxerga."
+      m3:
+        status: feito
+        texto: >-
+          Estação AOI com inspeção por visão computacional: um classificador treinado analisa a foto de cada placa
+          e o resultado encerra o ciclo da estação. No turno: {vision_inspected} placa(s) inspecionada(s),
+          {nok_aoi} reprovação(ões) retida(s) na AOI, detecção de {vision_detection} contra o gabarito (fotos
+          sintéticas; sem câmera real ainda). Carta de controle do forno com retenção automática: {holds} retenção(ões).
+    - m: Método
+      efeito_local: Dependência exclusiva da inspeção no teste final.
+      porques:
+        - Não há verificações intermediárias durante a montagem.
+        - O processo de montagem não é padronizado.
+        - Não foi definida uma sequência lógica e cronometrada para a operação.
+        - A montagem manual foi negligenciada pela engenharia de métodos.
+        - A gestão assumiu a montagem como tarefa intuitiva, ignorando a necessidade de uma linha de base operacional.
+      causa_raiz: Inexistência de engenharia de métodos para fundamentar o trabalho padronizado.
+      contramedida: Medir tempos, definir a sequência de montagem e treinar as 12 operadoras.
+      ferramenta: Trabalho padronizado + treinamento Kaizen
+      m2: "Cenários Lean: tempos das estações manuais balanceados em torno do takt de 20 s (hipótese de balanceamento)."
+      m3:
+        status: parcial
+        texto: >-
+          Cada estação tem ciclo ideal definido e todo ciclo é cronometrado contra ele ({cycles} ciclos no turno;
+          variação do posto manual: {cv_manual}). A sequência de montagem em si não é verificada.
+    - m: Mão de obra
+      efeito_local: Operadoras trabalhando "cada uma do seu jeito".
+      porques:
+        - Cada operadora desenvolveu seu próprio método empírico.
+        - Não há instruções claras e visuais no posto de trabalho.
+        - As melhores práticas não foram mapeadas e formalizadas em documento padrão.
+        - A supervisão foca a entrega das peças, não a estabilidade do método.
+        - As operadoras são tratadas como força de trabalho braçal, sem capacitação para a autonomia (Kaizen).
+      causa_raiz: Falta de instruções de trabalho padronizadas e ausência de cultura de autonomia operacional.
+      contramedida: Instruções de trabalho no posto e autonomia para interromper anomalias.
+      ferramenta: Instruções de trabalho, Andon
+      m2: "Não modelado: o simulador do M2 não representa o operador."
+      m3:
+        status: parcial
+        texto: >-
+          O posto tem botão de chamado (andon) com torre luminosa, e o operador pode parar a estação ({calls}
+          chamado(s) no turno). Instrução de trabalho guiada na tela do posto não existe.
+    - m: Material
+      efeito_local: Superprocessamento de peças defeituosas.
+      porques:
+        - Placas com falha de solda recebem componentes caros nas bancadas manuais.
+        - Chegam ao posto de montagem misturadas ao material bom.
+        - Não há triagem física logo após a soldagem.
+        - A linha não possui desvio mecânico para segregar o produto não conforme.
+        - Não foi desenhado um mecanismo Poka-Yoke de contenção de fluxo.
+      causa_raiz: Inexistência de Poka-Yoke físico/mecânico para segregar materiais reprovados na origem.
+      contramedida: Impedir que a placa reprovada receba componentes.
+      ferramenta: Poka-Yoke de separação
+      m2: "Retidas no SPI/AOI saem da linha para análise externa e não recebem componentes."
+      m3:
+        status: feito
+        texto: >-
+          Intertravamento por unidade: a estação só inicia o ciclo com liberação do servidor, e a reprovada volta à
+          estação que a reprovou. No turno: {blocked_route} tentativa(s) de avanço barrada(s). O bloqueio é lógico
+          (torre vermelha e buzina); não há desvio mecânico.
+    - m: Medida
+      efeito_local: Impossibilidade de balancear a linha.
+      porques:
+        - O desvio-padrão dos tempos de ciclo entre as estações é muito alto.
+        - Não existe medição sistemática e confiável do tempo de cada operadora.
+        - O processo depende de cronometragem manual esporádica.
+        - Não há instrumentação nas bancadas para coletar dados em tempo real.
+        - O chão de fábrica não possui tecnologias de conectividade (IoT) integradas à execução.
+      causa_raiz: Ausência de coleta de dados em tempo real nas estações manuais.
+      contramedida: Registrar tempos e acompanhar a execução do padrão.
+      ferramenta: Manufatura guiada (IoT) para cronoanálise
+      m2: "Todo evento da simulação (fila, entrada, saída) é registrado e reproduzido no painel."
+      m3:
+        status: feito
+        texto: >-
+          Firmware de estação (ESP32) cronometra cada ciclo e envia por MQTT; {stations_online} de {stations_total}
+          estações online ({hw_mix}), {cycles} ciclos coletados no turno, com rastreabilidade por unidade.
+    - m: Meio ambiente
+      efeito_local: Gargalos e acúmulo de WIP entre as estações.
+      porques:
+        - As operadoras mais rápidas empurram material para as mais lentas.
+        - A linha opera em sistema de fluxo empurrado.
+        - Não há limites físicos para o inventário intermediário (WIP).
+        - Não foi implementado sistema de gestão visual ou Kanban entre os postos.
+        - A área nunca passou por estudo de capacidade atrelado ao takt time da demanda.
+      causa_raiz: Layout desestruturado e ausência de supermercados/Kanban dimensionados pelo takt time.
+      contramedida: Redistribuir tarefas conforme o takt time e limitar o material entre postos.
+      ferramenta: Gráfico de balanceamento (Yamazumi) e Kanban de WIP
+      m2: "Cenário Lean ampliado: balanceamento derruba o WIP final de 391 para 23 placas (simulado, 8 h)."
+      m3:
+        status: pendente
+        texto: >-
+          O WIP de cada fila é medido e mostrado ({wip} unidade(s) em processo agora; maior fila: {max_waiting}), mas não
+          há limite de WIP nem Kanban: nada impede uma estação de empurrar material para a seguinte.
+
+digital_twin: >-
+  Proposta do M1: gêmeo digital com o produto como requisitante (ordena as etapas e pede capacidades) e os recursos
+  como provedores, com aquisição contínua por QR Code, visão, teste e bancada, e atuação automática por parada,
+  separação e instrução (arquitetura de Silva et al., 2026).
+
+referencias:
+  - "SILVA, A. R. A. da et al. A modular active-reactive AAS architecture for mass-customized production. Sensors, v. 26, n. 17, art. 5523, 2026."
+  - "OHNO, T. O Sistema Toyota de Produção: além da produção em larga escala. Porto Alegre: Bookman, 1997."
+  - "SHINGO, S. Sistema de Produção com Estoque Zero. Porto Alegre: Bookman, 1996."
+  - "SHINGO, S. Zero quality control: source inspection and the poka-yoke system. Cambridge, MA: Productivity Press, 1986."

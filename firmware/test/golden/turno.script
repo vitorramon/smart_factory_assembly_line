@@ -1,0 +1,46 @@
+# Roteiro de referência: <t_ms> <comando> <argumentos>
+# Comandos: link 0|1 · temp <°C>|nan · scan <código> · btn start|fail|call 0|1 · rx <cmd> <json>
+# O mesmo roteiro roda no teste nativo (C++) e pela biblioteca do simulador (Python);
+# os dois precisam produzir exatamente test/golden/turno.trace.
+0 temp 24.5
+100 link 1
+300 rx config {"takt_ms":3000,"tel_ms":5000,"release_timeout_ms":1000,"interlock":true,"fail_open":true}
+# 1) ciclo normal com leitor: liberado pelo servidor, termina OK
+1000 scan U-000001
+1040 rx release {"req":1,"ok":true,"unit":"U-000001"}
+3000 btn start 1
+3200 btn start 0
+# 2) estação sem leitor: INICIAR, servidor atribui a unidade; ciclo estoura o takt e termina NOK
+4000 btn start 1
+4200 btn start 0
+4250 rx release {"req":3,"ok":true,"unit":"U-000002"}
+8000 btn fail 1
+8200 btn fail 0
+# 3) intertravamento: unidade reprovada antes é bloqueada; operador reconhece
+9000 scan U-000003
+9030 rx release {"req":5,"ok":false,"reason":"upstream_fail"}
+10000 btn start 1
+10200 btn start 0
+# 4) servidor mudo: segue em modo degradado depois do tempo limite
+11000 scan U-000004
+13000 btn start 1
+13200 btn start 0
+# 5) chamado (andon) liga e desliga
+14000 btn call 1
+14200 btn call 0
+15000 btn call 1
+15200 btn call 0
+# 6) rede cai: o ciclo acontece offline e os eventos saem com age_ms na volta
+16000 link 0
+16500 scan U-000005
+18500 btn start 1
+18700 btn start 0
+20000 link 1
+# 7) comando de torre luminosa do servidor
+21000 rx light {"level":"red"}
+22000 rx light {"level":"auto"}
+# 8) inspeção automática: o servidor manda o resultado (câmera + IA) e a estação encerra o ciclo sozinha
+23000 scan U-000006
+23040 rx release {"req":12,"ok":true,"unit":"U-000006"}
+25000 rx result {"unit":"U-000006","ok":false}
+26000 end

@@ -1,0 +1,4 @@
+.pio/
+sim/build/
+include/secrets.h
+test/golden/*.out

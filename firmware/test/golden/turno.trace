@@ -1,0 +1,80 @@
+10 out 2
+110 pub sfal/v1/asm/status q1 r {"online":true,"fw":"1.0.0","hw":"sim","boot":7}
+110 pub sfal/v1/asm/tel q0 - {"boot":7,"up_ms":110,"state":"IDLE","unit":"","cycle_ms":0,"call":false,"temp":24.50,"rssi":0,"queued":0,"dropped":0,"reason":""}
+110 out 0
+1010 pub sfal/v1/asm/evt/scan q1 - {"seq":1,"boot":7,"age_ms":0,"unit":"U-000001"}
+1010 pub sfal/v1/asm/tel q0 - {"boot":7,"up_ms":1010,"state":"WAIT","unit":"U-000001","cycle_ms":0,"call":false,"temp":24.50,"rssi":0,"queued":0,"dropped":0,"reason":""}
+1010 out 1
+1050 pub sfal/v1/asm/tel q0 - {"boot":7,"up_ms":1050,"state":"RUNNING","unit":"U-000001","cycle_ms":40,"call":false,"temp":24.50,"rssi":0,"queued":0,"dropped":0,"reason":""}
+3040 pub sfal/v1/asm/evt/cycle q1 - {"seq":2,"boot":7,"age_ms":0,"unit":"U-000001","dur_ms":2030,"ok":true,"degraded":false}
+3040 pub sfal/v1/asm/tel q0 - {"boot":7,"up_ms":3040,"state":"IDLE","unit":"","cycle_ms":0,"call":false,"temp":24.50,"rssi":0,"queued":0,"dropped":0,"reason":""}
+3040 out 0
+4040 pub sfal/v1/asm/evt/scan q1 - {"seq":3,"boot":7,"age_ms":0,"unit":""}
+4040 pub sfal/v1/asm/tel q0 - {"boot":7,"up_ms":4040,"state":"WAIT","unit":"","cycle_ms":0,"call":false,"temp":24.50,"rssi":0,"queued":0,"dropped":0,"reason":""}
+4040 out 1
+4100 out 0
+4200 out 1
+4260 pub sfal/v1/asm/tel q0 - {"boot":7,"up_ms":4260,"state":"RUNNING","unit":"U-000002","cycle_ms":220,"call":false,"temp":24.50,"rssi":0,"queued":0,"dropped":0,"reason":""}
+7050 out 2
+8040 pub sfal/v1/asm/evt/cycle q1 - {"seq":4,"boot":7,"age_ms":0,"unit":"U-000002","dur_ms":4000,"ok":false,"degraded":false}
+8040 pub sfal/v1/asm/tel q0 - {"boot":7,"up_ms":8040,"state":"IDLE","unit":"","cycle_ms":0,"call":false,"temp":24.50,"rssi":0,"queued":0,"dropped":0,"reason":""}
+8040 out 0
+9010 pub sfal/v1/asm/evt/scan q1 - {"seq":5,"boot":7,"age_ms":0,"unit":"U-000003"}
+9010 pub sfal/v1/asm/tel q0 - {"boot":7,"up_ms":9010,"state":"WAIT","unit":"U-000003","cycle_ms":0,"call":false,"temp":24.50,"rssi":0,"queued":0,"dropped":0,"reason":""}
+9010 out 1
+9040 pub sfal/v1/asm/tel q0 - {"boot":7,"up_ms":9040,"state":"BLOCKED","unit":"U-000003","cycle_ms":0,"call":false,"temp":24.50,"rssi":0,"queued":0,"dropped":0,"reason":"upstream_fail"}
+9040 out 4
+10040 pub sfal/v1/asm/tel q0 - {"boot":7,"up_ms":10040,"state":"IDLE","unit":"","cycle_ms":0,"call":false,"temp":24.50,"rssi":0,"queued":0,"dropped":0,"reason":""}
+10040 out 0
+11010 pub sfal/v1/asm/evt/scan q1 - {"seq":6,"boot":7,"age_ms":0,"unit":"U-000004"}
+11010 pub sfal/v1/asm/tel q0 - {"boot":7,"up_ms":11010,"state":"WAIT","unit":"U-000004","cycle_ms":0,"call":false,"temp":24.50,"rssi":0,"queued":0,"dropped":0,"reason":""}
+11010 out 1
+11100 out 0
+11200 out 1
+11300 out 0
+11400 out 1
+11500 out 0
+11600 out 1
+11700 out 0
+11800 out 1
+11900 out 0
+12000 out 1
+12010 pub sfal/v1/asm/tel q0 - {"boot":7,"up_ms":12010,"state":"RUNNING","unit":"U-000004","cycle_ms":1000,"call":false,"temp":24.50,"rssi":0,"queued":0,"dropped":0,"reason":""}
+13040 pub sfal/v1/asm/evt/cycle q1 - {"seq":7,"boot":7,"age_ms":0,"unit":"U-000004","dur_ms":2030,"ok":true,"degraded":true}
+13040 pub sfal/v1/asm/tel q0 - {"boot":7,"up_ms":13040,"state":"IDLE","unit":"","cycle_ms":0,"call":false,"temp":24.50,"rssi":0,"queued":0,"dropped":0,"reason":""}
+13040 out 0
+14040 pub sfal/v1/asm/evt/call q1 - {"seq":8,"boot":7,"age_ms":0,"on":true}
+14040 pub sfal/v1/asm/tel q0 - {"boot":7,"up_ms":14040,"state":"IDLE","unit":"","cycle_ms":0,"call":true,"temp":24.50,"rssi":0,"queued":0,"dropped":0,"reason":""}
+14040 out 4
+14250 out 0
+14500 out 4
+14750 out 0
+15000 out 4
+15040 pub sfal/v1/asm/evt/call q1 - {"seq":9,"boot":7,"age_ms":0,"on":false}
+15040 pub sfal/v1/asm/tel q0 - {"boot":7,"up_ms":15040,"state":"IDLE","unit":"","cycle_ms":0,"call":false,"temp":24.50,"rssi":0,"queued":0,"dropped":0,"reason":""}
+15040 out 0
+16010 out 2
+16500 out 0
+16510 out 1
+17000 out 3
+17500 out 1
+18000 out 3
+18500 out 1
+18540 out 0
+19000 out 2
+19500 out 0
+20000 out 2
+20010 pub sfal/v1/asm/status q1 r {"online":true,"fw":"1.0.0","hw":"sim","boot":7}
+20010 pub sfal/v1/asm/evt/scan q1 - {"seq":10,"boot":7,"age_ms":3500,"unit":"U-000005"}
+20010 pub sfal/v1/asm/evt/cycle q1 - {"seq":11,"boot":7,"age_ms":1470,"unit":"U-000005","dur_ms":2030,"ok":true,"degraded":true}
+20010 pub sfal/v1/asm/tel q0 - {"boot":7,"up_ms":20010,"state":"IDLE","unit":"","cycle_ms":0,"call":false,"temp":24.50,"rssi":0,"queued":0,"dropped":0,"reason":""}
+20010 out 0
+21010 out 4
+22010 out 0
+23010 pub sfal/v1/asm/evt/scan q1 - {"seq":12,"boot":7,"age_ms":0,"unit":"U-000006"}
+23010 pub sfal/v1/asm/tel q0 - {"boot":7,"up_ms":23010,"state":"WAIT","unit":"U-000006","cycle_ms":0,"call":false,"temp":24.50,"rssi":0,"queued":0,"dropped":0,"reason":""}
+23010 out 1
+23050 pub sfal/v1/asm/tel q0 - {"boot":7,"up_ms":23050,"state":"RUNNING","unit":"U-000006","cycle_ms":40,"call":false,"temp":24.50,"rssi":0,"queued":0,"dropped":0,"reason":""}
+25010 pub sfal/v1/asm/evt/cycle q1 - {"seq":13,"boot":7,"age_ms":10,"unit":"U-000006","dur_ms":1990,"ok":false,"degraded":false}
+25010 pub sfal/v1/asm/tel q0 - {"boot":7,"up_ms":25010,"state":"IDLE","unit":"","cycle_ms":0,"call":false,"temp":24.50,"rssi":0,"queued":0,"dropped":0,"reason":""}
+25010 out 0

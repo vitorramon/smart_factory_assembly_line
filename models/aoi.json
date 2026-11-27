@@ -1,0 +1,28 @@
+{
+  "modelo": "aoi-cnn",
+  "treinado_em": "2026-11-26",
+  "dados": "fotos sintéticas de placa (software/sfal/vision/board.py); séries de treino e de teste disjuntas",
+  "treino": 5000,
+  "teste": 500,
+  "entrada": [
+    256,
+    192
+  ],
+  "classes": [
+    "ponte",
+    "ausente",
+    "excesso"
+  ],
+  "limiar": 1.0411012172698975,
+  "acuracia": 1.0,
+  "deteccao": 1.0,
+  "falsa_reprovacao": 0.0,
+  "defeitos_que_escaparam": 0,
+  "boas_reprovadas": 0,
+  "tipo_certo": 1.0,
+  "por_tipo": {
+    "ponte": "83/83",
+    "ausente": "84/84",
+    "excesso": "83/83"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "station_core",
+  "version": "1.0.0",
+  "description": "Lógica da estação, independente de placa (mesmo código no ESP32 e no simulador)",
+  "build": { "flags": ["-Wall", "-Wextra"] }
+}
